@@ -70,8 +70,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--p);box-shadow:0 0 0 3
 .i{width:1.15em;height:1.15em;vertical-align:-.2em}.nav .i{width:22px;height:22px;display:block;margin:0 auto 2px}.ic .i{width:18px;height:18px;vertical-align:middle}
 .nav b{font-size:inherit}
 .toast{background:var(--p)}
+h2,h3,b{overflow-wrap:anywhere}code{user-select:all;font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+#app{padding-bottom:24px}
+.ft{max-width:880px;margin:0 auto;padding:6px 14px calc(96px + env(safe-area-inset-bottom,0px));text-align:center;color:var(--mu);font-size:12.5px;line-height:1.7}
+.ft a{color:var(--p);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
+.ft .cp{margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)}
 </style></head><body>
 <div id="app"></div><div id="tt"></div>
+<footer class="ft"><div>Hỗ trợ sử dụng website: <a href="mailto:hotro-app.onluyen@ntak.io.vn">hotro-app.onluyen@ntak.io.vn</a></div><div>Hỗ trợ tài khoản: <a href="mailto:taikhoan-app.onluyen@ntak.io.vn">taikhoan-app.onluyen@ntak.io.vn</a></div><div class="cp">© 2026 Nguyen Trong An Khanh</div></footer>
 <script>
 const $=s=>document.querySelector(s),DEF='Abc@123',IV=[0,1,2,4,8,16];
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -105,13 +111,13 @@ async function login(){const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').va
 async function enter(u,rec){S.user={u,name:(rec&&rec.name)||(u==='admin'?'Tài khoản Admin':u),admin:u==='admin',must:!!(rec&&rec.must)};
  try{const p=await kget('prog/'+u);S.prog=(p&&p.m)||{}}catch(e){S.prog={}}
  await refreshWords();S.tab=LS.g('tab')||'home';S.Z=null;buildQ();render()}
-function logout(){LS.d('sess');S.user=null;S.prog={};render()}
+function logout(){LS.d('sess');S.newAcc=null;S.user=null;S.prog={};render()}
 async function setPw(){const u=S.user,o=$('#po')?$('#po').value:'',n=$('#pn').value,c=$('#pc').value;
  if(n.length<6)return toast('Mật khẩu mới cần ít nhất 6 ký tự');if(n!==c)return toast('Hai mật khẩu chưa khớp');if(n===DEF)return toast('Hãy đặt mật khẩu khác mật khẩu mặc định');
  const rec=await kget('users/'+u.u);
  if(!u.must){const ok=rec?rec.h===await hash(u.u,o):o===DEF;if(!ok)return toast('Mật khẩu cũ chưa đúng')}
  await kset('users/'+u.u,Object.assign({},rec||{},{name:u.name,h:await hash(u.u,n),must:false}));u.must=false;toast('Đã đổi mật khẩu ✅');render()}
-function go(t){S.tab=t;S.cf=null;LS.s('tab',t);if(t==='quiz')S.Z=null;refreshWords().then(async()=>{if(t==='learn')buildQ();if(t==='stu')await loadStu();render()});if(t==='learn')buildQ();render()}
+function go(t){S.tab=t;S.cf=null;if(t!=='stu')S.newAcc=null;LS.s('tab',t);if(t==='quiz')S.Z=null;refreshWords().then(async()=>{if(t==='learn')buildQ();if(t==='stu')await loadStu();render()});if(t==='learn')buildQ();render()}
 
 /* ===== Học thẻ ===== */
 function buildQ(){const L=S.L;let d=shuf(due().filter(w=>L.f==='all'||w.t===L.f));d.sort((a,b)=>((pr(a.id)||{}).b||0)-((pr(b.id)||{}).b||0));L.q=d.slice(0,15).map(w=>w.id);L.i=0;L.fl=false}
@@ -136,12 +142,19 @@ async function photo(inp){const f=inp.files[0];if(!f)return;if(!sample)return to
  catch(e){toast('Không đọc được ảnh, thử ảnh rõ hơn nhé')}S.busy='';render()}
 async function saveStage(){let n=0;S.stage.forEach(x=>{if(!S.words.some(w=>w.en.toLowerCase()===x.en.toLowerCase())){S.words.push(x);n++}});S.stage=[];await saveWords();toast('Đã lưu '+n+' mục mới ✅');render()}
 async function delW(id){if(S.cf!==id){S.cf=id;toast('Bấm thêm lần nữa để xoá');return filt()}S.cf=null;S.words=S.words.filter(w=>w.id!==id);await saveWords();filt()}
+const MAIL_KEY='0dadb602-560e-48b5-88a7-7a40637148de';/* Dán Access Key của Web3Forms vào đây để gửi email thông báo khi tạo tài khoản */
+function rnd(n){const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;let x;do{crypto.getRandomValues(a);x=a[0]}while(x>=lim);return x%n}
+function genPw(){const U='ABCDEFGHJKLMNPQRSTUVWXYZ',L='abcdefghijkmnopqrstuvwxyz',D='23456789',P='!@#$%&*?+=-_',all=U+L+D+P,pick=s=>s[rnd(s.length)],c=[pick(U),pick(L),pick(D),pick(P)];while(c.length<10)c.push(pick(all));for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}return c.join('')}
+const mask=s=>{const c=[...String(s)];return c.length<2?'*':c[0]+'*'.repeat(c.length-2)+(c.length>2?c[c.length-1]:'*')};
+async function sendMail(name,u,pw){if(!MAIL_KEY)return'off';try{const r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({access_key:MAIL_KEY,subject:('Thông tin người dùng '+name).slice(0,150),from_name:'AppOnLuyen',message:'Thông tin người dùng '+name+'\nTên đăng nhập: '+mask(u)+'\nMật khẩu: '+mask(pw)})});const j=await r.json();return j.success?'ok':'fail'}catch(e){return'fail'}}
+function cpPw(){const p=S.newAcc.pw;try{navigator.clipboard.writeText(p).then(()=>toast('Đã sao chép mật khẩu'),()=>toast('Hãy bôi đen mật khẩu để sao chép'))}catch(e){toast('Hãy bôi đen mật khẩu để sao chép')}}
+function accV(){const a=S.newAcc;if(!a)return'';const st={wait:'Đang gửi email thông báo…',ok:'Đã gửi email thông báo.',fail:'Chưa gửi được email thông báo.',off:'Chưa cấu hình gửi email.'}[a.mail]||'';return `<div class="card" style="border-color:var(--ok)"><h3 style="margin-top:0">${a.mail==='reset'?'Mật khẩu mới':'Đã tạo tài khoản'}</h3><div>${esc(a.name)} · <b>${esc(a.u)}</b></div><div class="row" style="margin:10px 0"><code style="font-size:20px;font-weight:700;letter-spacing:1px">${esc(a.pw)}</code><button class="chip" onclick="cpPw()">Sao chép</button></div><div class="hint">Mật khẩu chỉ hiện ở đây một lần, hãy ghi lại để gửi cho học sinh.${st?' '+st:''}</div><p><button class="btn s" onclick="S.newAcc=null;render()">Đóng</button></p></div>`}
 /* ===== Học sinh (admin) ===== */
 async function loadStu(){try{S.users=(await klist('users')).filter(x=>x.id!=='admin');S.ap={};(await klist('prog')).forEach(x=>S.ap[x.id]=Object.keys(x.m||{}).length)}catch(e){}}
-async function addStu(){const n=$('#sn').value.trim(),u=$('#su').value.trim().toLowerCase();if(!n||!/^[a-z0-9_-]{3,20}$/.test(u))return toast('Nhập tên hiển thị và username (3-20 ký tự: a-z, 0-9, _ -)');
+async function addStu(){const n=$('#sn').value.trim(),u=$('#su').value.trim().toLowerCase();if(!n||!/^[a-z0-9_-]+$/.test(u)||u.length>700)return toast('Nhập tên hiển thị và username (chữ thường không dấu, số, _ và -, tối đa 700 ký tự)');
  if(u==='admin'||await kget('users/'+u))return toast('Username này đã tồn tại');
- await kset('users/'+u,{name:n,h:await hash(u,DEF),must:true});toast('Đã tạo tài khoản. Mật khẩu mặc định: '+DEF);await loadStu();render()}
-async function resetStu(u){if(S.cf!=='r'+u){S.cf='r'+u;render();return}S.cf=null;const r=await kget('users/'+u);await kset('users/'+u,Object.assign({},r,{h:await hash(u,DEF),must:true}));toast('Đã đặt lại mật khẩu về mặc định');render()}
+ const pw=genPw();await kset('users/'+u,{name:n,h:await hash(u,pw),must:true});S.newAcc={name:n,u,pw,mail:'wait'};await loadStu();render();const m=await sendMail(n,u,pw);if(S.newAcc&&S.newAcc.pw===pw){S.newAcc.mail=m;render()}}
+async function resetStu(u){if(S.cf!=='r'+u){S.cf='r'+u;render();return}S.cf=null;const r=await kget('users/'+u);const pw=genPw();await kset('users/'+u,Object.assign({},r,{h:await hash(u,pw),must:true}));S.newAcc={name:(r&&r.name)||u,u,pw,mail:'reset'};render()}
 async function delStu(u){if(S.cf!=='d'+u){S.cf='d'+u;render();return}S.cf=null;await kdel('users/'+u);await kdel('prog/'+u);await loadStu();toast('Đã xoá học sinh');render()}
 
 /* ===== Giao diện ===== */
@@ -184,7 +197,7 @@ function addV(){const st=S.stage;return `${S.busy?`<div class="card" style="text
 <div class="row"><button class="btn" onclick="readText()">Đọc văn bản</button><label class="btn s">📄 Up file<input type="file" accept=".txt,.csv,.tsv,text/plain" hidden onchange="upf(this)"></label>${sample?`<label class="btn o">📷 Chụp / chọn ảnh<input type="file" accept="image/*" hidden onchange="photo(this)"></label>`:''}</div>
 <div class="hint" style="margin-top:8px">File .txt/.csv: mỗi dòng dạng từ | nghĩa | ví dụ (hoặc dùng dấu , ; Tab).</div></div></div>
 ${st.length?`<div class="card"><h3 style="margin-top:0">👀 Kiểm tra trước khi lưu (${st.length})</h3>${st.map((x,i)=>`<div class="it"><div><span class="tag">${x.t==='s'?'Cấu trúc':'Từ'}</span><b>${esc(x.en)}</b><small>${esc(x.vi)}${x.ex?' · 💬 '+esc(x.ex):''}</small></div><button class="ic" onclick="S.stage.splice(${i},1);render()">✕</button></div>`).join('')}<div class="row" style="margin-top:12px"><button class="btn g" onclick="saveStage()">💾 Lưu tất cả</button><button class="btn s" onclick="S.stage=[];render()">Bỏ hết</button></div></div>`:''}`}
-function stuV(){return `<div class="card"><h3 style="margin-top:0">🧑‍🎓 Thêm học sinh</h3><input id="sn" placeholder="Tên hiển thị"><input id="su" placeholder="username (chữ thường, không dấu)" autocapitalize="none"><button class="btn" onclick="addStu()">➕ Tạo tài khoản</button><div class="hint" style="margin-top:8px">Mật khẩu mặc định: <b>${DEF}</b>. Học sinh sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div></div>
+function stuV(){return `<div class="card"><h3 style="margin-top:0">🧑‍🎓 Thêm học sinh</h3><input id="sn" placeholder="Tên hiển thị"><input id="su" placeholder="username (chữ thường, không dấu)" autocapitalize="none"><button class="btn" onclick="addStu()">➕ Tạo tài khoản</button><div class="hint" style="margin-top:8px">Hệ thống tự tạo mật khẩu ngẫu nhiên 10 ký tự cho mỗi học sinh. Học sinh sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div></div>${accV()}
 <div class="card"><h3 style="margin-top:0">Danh sách (${S.users.length})</h3>${S.users.length?S.users.map(u=>`<div class="it"><div><b>${esc(u.name)}</b><small>@${esc(u.id)} · đã học ${S.ap[u.id]||0} mục${u.must?' · chưa đổi mật khẩu':''}</small></div><button class="ic" title="Đặt lại mật khẩu" onclick="resetStu('${esc(u.id)}')">${S.cf==='r'+u.id?'❗':'🔑'}</button><button class="ic" title="Xoá" onclick="delStu('${esc(u.id)}')">${S.cf==='d'+u.id?'❗':'🗑'}</button></div>`).join('')+'<div class="hint">Bấm ❗ lần nữa để xác nhận.</div>':'<div class="hint">Chưa có học sinh nào 📭</div>'}</div>`}
 function meV(){const u=S.user;return `<div class="card"><h3 style="margin-top:0">${u.admin?'👑':'🙂'} ${esc(u.name)}</h3><div class="hint">Username: ${esc(u.u)}</div></div>
 <div class="card"><h3 style="margin-top:0">🔐 Đổi mật khẩu</h3><input id="po" type="password" placeholder="Mật khẩu hiện tại"><input id="pn" type="password" placeholder="Mật khẩu mới (từ 6 ký tự)"><input id="pc" type="password" placeholder="Nhập lại mật khẩu mới"><button class="btn" onclick="setPw()">Lưu mật khẩu</button></div>
