@@ -75,6 +75,7 @@ h2,h3,b{overflow-wrap:anywhere}code{user-select:all;font-family:ui-monospace,Men
 .ft{max-width:880px;margin:0 auto;padding:6px 14px calc(96px + env(safe-area-inset-bottom,0px));text-align:center;color:var(--mu);font-size:12.5px;line-height:1.7}
 .ft a{color:var(--p);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
 .ft .cp{margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)}
+.btn:disabled{opacity:.6;cursor:wait}
 </style></head><body>
 <div id="app"></div><div id="tt"></div>
 <footer class="ft"><div>Hỗ trợ sử dụng website: <a href="mailto:hotro-app.onluyen@ntak.io.vn">hotro-app.onluyen@ntak.io.vn</a></div><div>Hỗ trợ tài khoản: <a href="mailto:taikhoan-app.onluyen@ntak.io.vn">taikhoan-app.onluyen@ntak.io.vn</a></div><div class="cp">© 2026 Nguyen Trong An Khanh</div></footer>
@@ -99,24 +100,24 @@ const isS=t=>/\b(sb|sth|someone|something)\b|\.\.\.|\+|~|\bV(-ing|-ed|\d)?\b|\bt
 function sayId(id){const w=byId(id);if(w)say(w.en)}
 function say(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/\b(sb|sth)\b/gi,'someone').replace(/\.\.\./g,' '));u.lang='en-US';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
 async function saveWords(){await kset('app/words',{items:S.words})}
-function mark(id,r){const p=S.prog[id]||{b:0,d:0};if(r===0){p.b=0;p.d=Date.now()}else if(r===1){p.d=Date.now()+864e5}else{p.b=Math.min(5,p.b+1);p.d=Date.now()+IV[p.b]*864e5}S.prog[id]=p;clearTimeout(sv);sv=setTimeout(()=>kset('prog/'+S.user.u,{m:S.prog}).catch(()=>{}),600)}
+function mark(id,r){const p=S.prog[id]||{b:0,d:0};if(r===0){p.b=0;p.d=Date.now()}else if(r===1){p.d=Date.now()+864e5}else{p.b=Math.min(5,p.b+1);p.d=Date.now()+IV[p.b]*864e5}S.prog[id]=p;clearTimeout(sv);sv=setTimeout(()=>kset('prog/'+S.user.k,{m:S.prog}).catch(()=>{}),600)}
 async function refreshWords(){try{const d=await kget('app/words');if(d&&d.items)S.words=d.items}catch(e){}}
 
 /* ===== Đăng nhập & phiên ===== */
-async function login(){const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value;if(!u||!p)return toast('Nhập username và mật khẩu nhé');if(!/^[a-z0-9_-]+$/.test(u))return toast('Sai username hoặc mật khẩu');
- let rec;try{rec=await kget('users/'+u)}catch(e){return toast('Không tải được dữ liệu ('+(e.message||'lỗi mạng')+')')}
+async function login(){const u=norm($('#lu').value),p=$('#lp').value;if(!u||!p)return toast('Nhập username và mật khẩu nhé');const k=await uk(u);
+ let rec;try{rec=await kget('users/'+k)}catch(e){return toast('Không tải được dữ liệu ('+(e.message||'lỗi mạng')+')')}
  const h=await hash(u,p);let ok=u==='admin'?(rec?rec.h===h:p===DEF):!!rec&&rec.h===h;
  if(!ok)return toast('Sai username hoặc mật khẩu 😢');
  await enter(u,rec);LS.s('sess',{u});toast('Chào mừng bạn! 🎉')}
-async function enter(u,rec){S.user={u,name:(rec&&rec.name)||(u==='admin'?'Tài khoản Admin':u),admin:u==='admin',must:!!(rec&&rec.must)};
- try{const p=await kget('prog/'+u);S.prog=(p&&p.m)||{}}catch(e){S.prog={}}
+async function enter(u,rec){const k=await uk(u);S.user={u,k,name:(rec&&rec.name)||(u==='admin'?'Tài khoản Admin':(rec&&rec.u)||u),admin:u==='admin',must:!!(rec&&rec.must)};
+ try{const p=await kget('prog/'+k);S.prog=(p&&p.m)||{}}catch(e){S.prog={}}
  await refreshWords();S.tab=LS.g('tab')||'home';S.Z=null;buildQ();render()}
 function logout(){LS.d('sess');S.newAcc=null;S.user=null;S.prog={};render()}
 async function setPw(){const u=S.user,o=$('#po')?$('#po').value:'',n=$('#pn').value,c=$('#pc').value;
  if(n.length<6)return toast('Mật khẩu mới cần ít nhất 6 ký tự');if(n!==c)return toast('Hai mật khẩu chưa khớp');if(n===DEF)return toast('Hãy đặt mật khẩu khác mật khẩu mặc định');
- const rec=await kget('users/'+u.u);
+ const rec=await kget('users/'+u.k);
  if(!u.must){const ok=rec?rec.h===await hash(u.u,o):o===DEF;if(!ok)return toast('Mật khẩu cũ chưa đúng')}
- await kset('users/'+u.u,Object.assign({},rec||{},{name:u.name,h:await hash(u.u,n),must:false}));u.must=false;toast('Đã đổi mật khẩu ✅');render()}
+ await kset('users/'+u.k,Object.assign({},rec||{},{name:u.name,h:await hash(u.u,n),must:false}));u.must=false;toast('Đã đổi mật khẩu ✅');render()}
 function go(t){S.tab=t;S.cf=null;if(t!=='stu')S.newAcc=null;LS.s('tab',t);if(t==='quiz')S.Z=null;refreshWords().then(async()=>{if(t==='learn')buildQ();if(t==='stu')await loadStu();render()});if(t==='learn')buildQ();render()}
 
 /* ===== Học thẻ ===== */
@@ -146,22 +147,26 @@ const MAIL_KEY='0dadb602-560e-48b5-88a7-7a40637148de';/* Dán Access Key của W
 function rnd(n){const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;let x;do{crypto.getRandomValues(a);x=a[0]}while(x>=lim);return x%n}
 function genPw(){const U='ABCDEFGHJKLMNPQRSTUVWXYZ',L='abcdefghijkmnopqrstuvwxyz',D='23456789',P='!@#$%&*?+=-_',all=U+L+D+P,pick=s=>s[rnd(s.length)],c=[pick(U),pick(L),pick(D),pick(P)];while(c.length<10)c.push(pick(all));for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}return c.join('')}
 const mask=s=>{const c=[...String(s)];return c.length<2?'*':c[0]+'*'.repeat(c.length-2)+(c.length>2?c[c.length-1]:'*')};
+const norm=s=>String(s).normalize('NFC').trim().toLowerCase();
+async function uk(u){if(/^[a-z0-9_-]{1,100}$/.test(u))return u;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('uk|'+u));return '~'+[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const _fetch=window.fetch.bind(window);window.fetch=function(u,o){if(FB&&typeof u==='string'&&u.indexOf(FB)===0){o=Object.assign({},o);const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);o.signal=c.signal;return _fetch(u,o).catch(e=>{throw e&&e.name==='AbortError'?new Error('Hết thời gian chờ máy chủ'):e}).finally(()=>clearTimeout(t))}return _fetch(u,o)};
+const _login=login;login=async function(){const b=$('#lb');if(b&&b.disabled)return;if(b){b.disabled=true;b.textContent='Đang đăng nhập…'}try{await _login()}catch(e){toast('Có lỗi khi đăng nhập: '+((e&&e.message)||e))}finally{const c=$('#lb');if(c){c.disabled=false;c.textContent='Đăng nhập'}}};
 async function sendMail(name,u,pw){if(!MAIL_KEY)return'off';try{const r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({access_key:MAIL_KEY,subject:('Thông tin người dùng '+name).slice(0,150),from_name:'AppOnLuyen',message:'Thông tin người dùng '+name+'\nTên đăng nhập: '+mask(u)+'\nMật khẩu: '+mask(pw)})});const j=await r.json();return j.success?'ok':'fail'}catch(e){return'fail'}}
 function cpPw(){const p=S.newAcc.pw;try{navigator.clipboard.writeText(p).then(()=>toast('Đã sao chép mật khẩu'),()=>toast('Hãy bôi đen mật khẩu để sao chép'))}catch(e){toast('Hãy bôi đen mật khẩu để sao chép')}}
 function accV(){const a=S.newAcc;if(!a)return'';const st={wait:'Đang gửi email thông báo…',ok:'Đã gửi email thông báo.',fail:'Chưa gửi được email thông báo.',off:'Chưa cấu hình gửi email.'}[a.mail]||'';return `<div class="card" style="border-color:var(--ok)"><h3 style="margin-top:0">${a.mail==='reset'?'Mật khẩu mới':'Đã tạo tài khoản'}</h3><div>${esc(a.name)} · <b>${esc(a.u)}</b></div><div class="row" style="margin:10px 0"><code style="font-size:20px;font-weight:700;letter-spacing:1px">${esc(a.pw)}</code><button class="chip" onclick="cpPw()">Sao chép</button></div><div class="hint">Mật khẩu chỉ hiện ở đây một lần, hãy ghi lại để gửi cho học sinh.${st?' '+st:''}</div><p><button class="btn s" onclick="S.newAcc=null;render()">Đóng</button></p></div>`}
 /* ===== Học sinh (admin) ===== */
 async function loadStu(){try{S.users=(await klist('users')).filter(x=>x.id!=='admin');S.ap={};(await klist('prog')).forEach(x=>S.ap[x.id]=Object.keys(x.m||{}).length)}catch(e){}}
-async function addStu(){const n=$('#sn').value.trim(),u=$('#su').value.trim().toLowerCase();if(!n||!/^[a-z0-9_-]+$/.test(u)||u.length>700)return toast('Nhập tên hiển thị và username (chữ thường không dấu, số, _ và -, tối đa 700 ký tự)');
- if(u==='admin'||await kget('users/'+u))return toast('Username này đã tồn tại');
- const pw=genPw();await kset('users/'+u,{name:n,h:await hash(u,pw),must:true});S.newAcc={name:n,u,pw,mail:'wait'};await loadStu();render();const m=await sendMail(n,u,pw);if(S.newAcc&&S.newAcc.pw===pw){S.newAcc.mail=m;render()}}
-async function resetStu(u){if(S.cf!=='r'+u){S.cf='r'+u;render();return}S.cf=null;const r=await kget('users/'+u);const pw=genPw();await kset('users/'+u,Object.assign({},r,{h:await hash(u,pw),must:true}));S.newAcc={name:(r&&r.name)||u,u,pw,mail:'reset'};render()}
+async function addStu(){const n=$('#sn').value.trim(),raw=$('#su').value.trim(),u=norm(raw);if(!n||!u)return toast('Nhập tên hiển thị và username');const k=await uk(u);
+ if(u==='admin'||await kget('users/'+k))return toast('Username này đã tồn tại');
+ const pw=genPw();await kset('users/'+k,{u:raw,name:n,h:await hash(u,pw),must:true});S.newAcc={name:n,u:raw,pw,mail:'wait'};await loadStu();render();const m=await sendMail(n,raw,pw);if(S.newAcc&&S.newAcc.pw===pw){S.newAcc.mail=m;render()}}
+async function resetStu(u){if(S.cf!=='r'+u){S.cf='r'+u;render();return}S.cf=null;const r=await kget('users/'+u);const pw=genPw(),un=norm((r&&r.u)||u);await kset('users/'+u,Object.assign({},r,{h:await hash(un,pw),must:true}));S.newAcc={name:(r&&r.name)||u,u:(r&&r.u)||u,pw,mail:'reset'};render()}
 async function delStu(u){if(S.cf!=='d'+u){S.cf='d'+u;render();return}S.cf=null;await kdel('users/'+u);await kdel('prog/'+u);await loadStu();toast('Đã xoá học sinh');render()}
 
 /* ===== Giao diện ===== */
 function loginV(){return `<div class="card login"><div style="font-size:54px">🌈</div><div class="logo" style="font-size:30px">AppOnLuyen</div><p class="hint">Học từ và cấu trúc tiếng Anh thật vui, dễ nhớ!</p>
 <input id="lu" placeholder="Username" autocapitalize="none" autocomplete="username" style="text-align:center">
 <input id="lp" type="password" placeholder="Mật khẩu" autocomplete="current-password" style="text-align:center" onkeydown="if(event.key==='Enter')login()">
-<button class="btn" style="width:100%" onclick="login()">🚀 Đăng nhập</button></div>`}
+<button class="btn" id="lb" style="width:100%" onclick="login()">🚀 Đăng nhập</button></div>`}
 function mustV(){return `<div class="card login"><div style="font-size:48px">🔐</div><h2>Đổi mật khẩu lần đầu</h2><p class="hint">Chào ${esc(S.user.name)}! Hãy đặt mật khẩu riêng (ít nhất 6 ký tự) để tiếp tục.</p>
 <input id="pn" type="password" placeholder="Mật khẩu mới"><input id="pc" type="password" placeholder="Nhập lại mật khẩu mới" onkeydown="if(event.key==='Enter')setPw()">
 <button class="btn" style="width:100%" onclick="setPw()">Lưu và vào học</button><p><button class="chip" onclick="logout()">Đăng xuất</button></p></div>`}
@@ -197,8 +202,8 @@ function addV(){const st=S.stage;return `${S.busy?`<div class="card" style="text
 <div class="row"><button class="btn" onclick="readText()">Đọc văn bản</button><label class="btn s">📄 Up file<input type="file" accept=".txt,.csv,.tsv,text/plain" hidden onchange="upf(this)"></label>${sample?`<label class="btn o">📷 Chụp / chọn ảnh<input type="file" accept="image/*" hidden onchange="photo(this)"></label>`:''}</div>
 <div class="hint" style="margin-top:8px">File .txt/.csv: mỗi dòng dạng từ | nghĩa | ví dụ (hoặc dùng dấu , ; Tab).</div></div></div>
 ${st.length?`<div class="card"><h3 style="margin-top:0">👀 Kiểm tra trước khi lưu (${st.length})</h3>${st.map((x,i)=>`<div class="it"><div><span class="tag">${x.t==='s'?'Cấu trúc':'Từ'}</span><b>${esc(x.en)}</b><small>${esc(x.vi)}${x.ex?' · 💬 '+esc(x.ex):''}</small></div><button class="ic" onclick="S.stage.splice(${i},1);render()">✕</button></div>`).join('')}<div class="row" style="margin-top:12px"><button class="btn g" onclick="saveStage()">💾 Lưu tất cả</button><button class="btn s" onclick="S.stage=[];render()">Bỏ hết</button></div></div>`:''}`}
-function stuV(){return `<div class="card"><h3 style="margin-top:0">🧑‍🎓 Thêm học sinh</h3><input id="sn" placeholder="Tên hiển thị"><input id="su" placeholder="username (chữ thường, không dấu)" autocapitalize="none"><button class="btn" onclick="addStu()">➕ Tạo tài khoản</button><div class="hint" style="margin-top:8px">Hệ thống tự tạo mật khẩu ngẫu nhiên 10 ký tự cho mỗi học sinh. Học sinh sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div></div>${accV()}
-<div class="card"><h3 style="margin-top:0">Danh sách (${S.users.length})</h3>${S.users.length?S.users.map(u=>`<div class="it"><div><b>${esc(u.name)}</b><small>@${esc(u.id)} · đã học ${S.ap[u.id]||0} mục${u.must?' · chưa đổi mật khẩu':''}</small></div><button class="ic" title="Đặt lại mật khẩu" onclick="resetStu('${esc(u.id)}')">${S.cf==='r'+u.id?'❗':'🔑'}</button><button class="ic" title="Xoá" onclick="delStu('${esc(u.id)}')">${S.cf==='d'+u.id?'❗':'🗑'}</button></div>`).join('')+'<div class="hint">Bấm ❗ lần nữa để xác nhận.</div>':'<div class="hint">Chưa có học sinh nào 📭</div>'}</div>`}
+function stuV(){return `<div class="card"><h3 style="margin-top:0">🧑‍🎓 Thêm học sinh</h3><input id="sn" placeholder="Tên hiển thị"><input id="su" placeholder="Username (dùng mọi ký tự, không giới hạn độ dài)" autocapitalize="none"><button class="btn" onclick="addStu()">➕ Tạo tài khoản</button><div class="hint" style="margin-top:8px">Hệ thống tự tạo mật khẩu ngẫu nhiên 10 ký tự cho mỗi học sinh. Học sinh sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div></div>${accV()}
+<div class="card"><h3 style="margin-top:0">Danh sách (${S.users.length})</h3>${S.users.length?S.users.map(u=>`<div class="it"><div><b>${esc(u.name)}</b><small>@${esc(u.u||u.id)} · đã học ${S.ap[u.id]||0} mục${u.must?' · chưa đổi mật khẩu':''}</small></div><button class="ic" title="Đặt lại mật khẩu" onclick="resetStu('${esc(u.id)}')">${S.cf==='r'+u.id?'❗':'🔑'}</button><button class="ic" title="Xoá" onclick="delStu('${esc(u.id)}')">${S.cf==='d'+u.id?'❗':'🗑'}</button></div>`).join('')+'<div class="hint">Bấm ❗ lần nữa để xác nhận.</div>':'<div class="hint">Chưa có học sinh nào 📭</div>'}</div>`}
 function meV(){const u=S.user;return `<div class="card"><h3 style="margin-top:0">${u.admin?'👑':'🙂'} ${esc(u.name)}</h3><div class="hint">Username: ${esc(u.u)}</div></div>
 <div class="card"><h3 style="margin-top:0">🔐 Đổi mật khẩu</h3><input id="po" type="password" placeholder="Mật khẩu hiện tại"><input id="pn" type="password" placeholder="Mật khẩu mới (từ 6 ký tự)"><input id="pc" type="password" placeholder="Nhập lại mật khẩu mới"><button class="btn" onclick="setPw()">Lưu mật khẩu</button></div>
 <button class="btn r" style="width:100%" onclick="logout()">🚪 Đăng xuất</button>`}
@@ -213,7 +218,7 @@ a.innerHTML=`<div class="top"><span class="logo">AppOnLuyen</span><span style="f
 if(tb==='lib')filt()}
 (async function(){render();
 try{if(window.claude){db=await claude.use('db');sample=await claude.use('sample')}}catch(e){}
-try{await refreshWords();const ss=LS.g('sess');if(ss&&ss.u){const rec=await kget('users/'+ss.u);if(ss.u==='admin'||rec)await enter(ss.u,rec);else LS.d('sess')}}catch(e){}
+try{await refreshWords();const ss=LS.g('sess');if(ss&&ss.u){const rec=await kget('users/'+await uk(ss.u));if(ss.u==='admin'||rec)await enter(ss.u,rec);else LS.d('sess')}}catch(e){}
 S.loading=false;render()})();
 document.documentElement.dataset.theme='light';
 const svg=p=>'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
