@@ -92,7 +92,7 @@ async function kget(p){if(FB){const r=await fetch(FB+'/'+p+'.json',{cache:'no-st
 async function kset(p,v){try{if(FB){const r=await fetch(FB+'/'+p+'.json',{method:'PUT',body:JSON.stringify(v)});if(!r.ok)throw new Error('http')}else if(db)await db.doc(p).set(v);else LS.s('d:'+p,v)}catch(e){toast('⚠️ Không lưu được dữ liệu');throw e}}
 async function kdel(p){try{if(FB)await fetch(FB+'/'+p+'.json',{method:'DELETE'});else if(db)await db.doc(p).delete();else LS.d('d:'+p)}catch(e){toast('⚠️ Không xoá được')}}
 async function klist(c){if(FB){const r=await fetch(FB+'/'+c+'.json',{cache:'no-store'});if(!r.ok)throw new Error('http');const o=(await r.json())||{};return Object.keys(o).map(k=>Object.assign({id:k},o[k]))}if(db){const s=await db.collection(c).get();return s.docs.map(d=>Object.assign({id:d.id},d.data()))}const o=[],pre='ev:d:'+c+'/';try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(pre))o.push(Object.assign({id:k.slice(pre.length)},JSON.parse(localStorage.getItem(k))))}}catch(e){}return o}
-async function hash(u,p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('ev1|'+u+'|'+p));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function hash(u,p){return sha('ev1|'+u+'|'+p)}
 const byId=id=>S.words.find(w=>w.id===id),pr=id=>S.prog[id],nrm=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 const due=()=>S.words.filter(w=>!pr(w.id)||pr(w.id).d<=Date.now()),mast=()=>S.words.filter(w=>pr(w.id)&&pr(w.id).b>=4).length;
 const shuf=a=>a.slice().sort(()=>Math.random()-.5);
@@ -147,8 +147,15 @@ const MAIL_KEY='0dadb602-560e-48b5-88a7-7a40637148de';/* Dán Access Key của W
 function rnd(n){const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;let x;do{crypto.getRandomValues(a);x=a[0]}while(x>=lim);return x%n}
 function genPw(){const U='ABCDEFGHJKLMNPQRSTUVWXYZ',L='abcdefghijkmnopqrstuvwxyz',D='23456789',P='!@#$%&*?+=-_',all=U+L+D+P,pick=s=>s[rnd(s.length)],c=[pick(U),pick(L),pick(D),pick(P)];while(c.length<10)c.push(pick(all));for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}return c.join('')}
 const mask=s=>{const c=[...String(s)];return c.length<2?'*':c[0]+'*'.repeat(c.length-2)+(c.length>2?c[c.length-1]:'*')};
+const SHA=(()=>{const K=[],H0=[];for(let c=2,n=0;n<64;c++){let p=1;for(let d=2;d*d<=c;d++)if(c%d==0){p=0;break}if(p){if(n<8)H0[n]=(Math.pow(c,.5)*4294967296)|0;K[n++]=(Math.pow(c,1/3)*4294967296)|0}}
+return s=>{const b=new TextEncoder().encode(s),l=b.length,nb=((l+9+63)>>6)<<6,m=new Uint8Array(nb);m.set(b);m[l]=128;const dv=new DataView(m.buffer);dv.setUint32(nb-4,(l*8)>>>0);dv.setUint32(nb-8,Math.floor(l*8/4294967296));const h=H0.slice(),w=new Int32Array(64),r=(x,n)=>(x>>>n)|(x<<(32-n));
+for(let o=0;o<nb;o+=64){for(let i=0;i<16;i++)w[i]=dv.getInt32(o+i*4);for(let i=16;i<64;i++){const a=w[i-15],z=w[i-2];w[i]=(w[i-16]+(r(a,7)^r(a,18)^(a>>>3))+w[i-7]+(r(z,17)^r(z,19)^(z>>>10)))|0}
+let [a,b2,c,d,e,f,g,q]=h;for(let i=0;i<64;i++){const t1=(q+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+K[i]+w[i])|0,t2=((r(a,2)^r(a,13)^r(a,22))+((a&b2)^(a&c)^(b2&c)))|0;q=g;g=f;f=e;e=(d+t1)|0;d=c;c=b2;b2=a;a=(t1+t2)|0}
+h[0]=(h[0]+a)|0;h[1]=(h[1]+b2)|0;h[2]=(h[2]+c)|0;h[3]=(h[3]+d)|0;h[4]=(h[4]+e)|0;h[5]=(h[5]+f)|0;h[6]=(h[6]+g)|0;h[7]=(h[7]+q)|0}
+return h.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('')}})();
+async function sha(s){try{if(window.crypto&&crypto.subtle)return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){}return SHA(s)}
 const norm=s=>String(s).normalize('NFC').trim().toLowerCase();
-async function uk(u){if(/^[a-z0-9_-]{1,100}$/.test(u))return u;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('uk|'+u));return '~'+[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function uk(u){if(/^[a-z0-9_-]{1,100}$/.test(u))return u;return '~'+await sha('uk|'+u)}
 const _fetch=window.fetch.bind(window);window.fetch=function(u,o){if(FB&&typeof u==='string'&&u.indexOf(FB)===0){o=Object.assign({},o);const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);o.signal=c.signal;return _fetch(u,o).catch(e=>{throw e&&e.name==='AbortError'?new Error('Hết thời gian chờ máy chủ'):e}).finally(()=>clearTimeout(t))}return _fetch(u,o)};
 const _login=login;login=async function(){const b=$('#lb');if(b&&b.disabled)return;if(b){b.disabled=true;b.textContent='Đang đăng nhập…'}try{await _login()}catch(e){toast('Có lỗi khi đăng nhập: '+((e&&e.message)||e))}finally{const c=$('#lb');if(c){c.disabled=false;c.textContent='Đăng nhập'}}};
 async function sendMail(name,u,pw){if(!MAIL_KEY)return'off';try{const r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({access_key:MAIL_KEY,subject:('Thông tin người dùng '+name).slice(0,150),from_name:'AppOnLuyen',message:'Thông tin người dùng '+name+'\nTên đăng nhập: '+mask(u)+'\nMật khẩu: '+mask(pw)})});const j=await r.json();return j.success?'ok':'fail'}catch(e){return'fail'}}
